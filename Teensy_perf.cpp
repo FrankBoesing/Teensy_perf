@@ -25,7 +25,7 @@
 void emptyfunc() {};
 
 static
-uint32_t __attribute__ ((optimize(2))) __measure(void (*func)(void)) {
+uint32_t __attribute__ ((optimize(0))) __measure(void (*func)(void)) {
   delay(50);
 
   noInterrupts();
@@ -81,7 +81,7 @@ uint32_t __attribute__ ((optimize(2))) __measure(void (*func)(void)) {
   return cycles_stop - cycles_start;
 }
 
-uint32_t __attribute__ ((optimize(2))) measure(void (*func)(void)) {
+uint32_t __attribute__ ((optimize(0))) measure(void (*func)(void)) {
   uint32_t cycles_empty = __measure(emptyfunc);
   uint32_t cycles = __measure(func);
   return cycles - cycles_empty;
