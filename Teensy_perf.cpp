@@ -25,18 +25,20 @@
 void emptyfunc() {};
 
 static
-uint32_t __measure(void (*func)(void)) {
+uint32_t __attribute__ ((optimize(2))) __measure(void (*func)(void)) {
   delay(50);
 
   noInterrupts();
 
 #if defined(__IMXRT1062__)
-  // Disable D-Cache
+ 
+  //Clean & invalidate D-Cache
+  //Taken from CMSIS
+  
   register uint32_t ccsidr;
   register uint32_t sets;
   register uint32_t ways;
 
-  //Clean & invalidate D-Cache
   ccsidr = SCB_ID_CCSIDR;
   sets = (uint32_t)(CCSIDR_SETS(ccsidr));
   do {
@@ -49,10 +51,18 @@ uint32_t __measure(void (*func)(void)) {
 
   SCB_CACHE_ICIALLU = 0; // invalidate I-Cache
 #else
-	
+ 
+ //push and invalidate cache:
+  LMEM_PCCCR |= (1<<31) | (1<<27) | (1<<26) | (1<<25) | (1<<24);
+  while (LMEM_PCCCR & (1<<31)) {;}
+
+  FMC_PFB0CR |= (1<<23) | (1<<22) | (1<<21) | (1<<20) | (1<<19);   
+  __DSB();
+  __ISB();
+  
   //enable cycle counter on T3.x
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
-  ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;	
+  ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;	  
   
 #endif
   __DSB();
@@ -71,7 +81,7 @@ uint32_t __measure(void (*func)(void)) {
   return cycles_stop - cycles_start;
 }
 
-uint32_t measure(void (*func)(void)) {
+uint32_t __attribute__ ((optimize(2))) measure(void (*func)(void)) {
   uint32_t cycles_empty = __measure(emptyfunc);
   uint32_t cycles = __measure(func);
   return cycles - cycles_empty;
