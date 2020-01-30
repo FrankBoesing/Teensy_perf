@@ -21,8 +21,10 @@
 #define CCSIDR_SETS(x)         (((x) & SCB_CCSIDR_NUMSETS_Msk      ) >> SCB_CCSIDR_NUMSETS_Pos      )
 #endif
 
+
 void emptyfunc() {};
 
+static
 uint32_t __measure(void (*func)(void)) {
   delay(50);
 
@@ -46,6 +48,12 @@ uint32_t __measure(void (*func)(void)) {
   } while (sets-- != 0U);
 
   SCB_CACHE_ICIALLU = 0; // invalidate I-Cache
+#else
+	
+  //enable cycle counter on T3.x
+  ARM_DEMCR |= ARM_DEMCR_TRCENA;
+  ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;	
+  
 #endif
   __DSB();
   __ISB();
@@ -53,7 +61,9 @@ uint32_t __measure(void (*func)(void)) {
   register uint32_t cycles_start = ARM_DWT_CYCCNT;
   __DSB();
   __ISB();
+  
   func();
+  
   register uint32_t cycles_stop = ARM_DWT_CYCCNT;
   interrupts();
 
