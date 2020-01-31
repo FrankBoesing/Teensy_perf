@@ -22,18 +22,18 @@
 #endif
 
 
-void  emptyfunc() {};
+void  empty_func() {};
 
 static
-uint32_t __attribute__ ((optimize(1), noinline, nocopy )) __measure(void (*func)(void)) {
+uint32_t __attribute__ ((optimize(1), noinline)) __measure(void (*func)(void)) {
   delay(250);
   noInterrupts();
 
 #if defined(__IMXRT1062__)
- 
+
   //Clean & invalidate D-Cache
   //Taken from CMSIS
-  
+
   register uint32_t ccsidr;
   register uint32_t sets;
   register uint32_t ways;
@@ -50,19 +50,19 @@ uint32_t __attribute__ ((optimize(1), noinline, nocopy )) __measure(void (*func)
 
   SCB_CACHE_ICIALLU = 0; // invalidate I-Cache
 #else
- 
- //push and invalidate cache:
-  LMEM_PCCCR |= (1<<31) | (1<<27) | (1<<26) | (1<<25) | (1<<24);
-  while (LMEM_PCCCR & (1<<31)) {;}
 
-  FMC_PFB0CR |= (1<<23) | (1<<22) | (1<<21) | (1<<20) | (1<<19);   
+ //push and invalidate cache on T3.x:
+  LMEM_PCCCR |= (1<<27) | (1<<26) | (1<<25) | (1<<24);
+  LMEM_PCCCR |= (1<<31);
+  while (LMEM_PCCCR & (1<<31)) {;}
+  FMC_PFB0CR |= (1<<23) | (1<<22) | (1<<21) | (1<<20) | (1<<19);
   __DSB();
   __ISB();
-  
+
   //enable cycle counter on T3.x
   ARM_DEMCR |= ARM_DEMCR_TRCENA;
-  ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;	  
-  
+  ARM_DWT_CTRL |= ARM_DWT_CTRL_CYCCNTENA;
+
 #endif
   __DSB();
   __ISB();
@@ -70,18 +70,26 @@ uint32_t __attribute__ ((optimize(1), noinline, nocopy )) __measure(void (*func)
   register uint32_t cycles_start = ARM_DWT_CYCCNT;
   __DSB();
   __ISB();
-  
+
   func();
-  
+
   register uint32_t cycles_stop = ARM_DWT_CYCCNT;
+  __DSB();
+  __ISB();
   interrupts();
-
-
   return cycles_stop - cycles_start;
 }
 
-uint32_t __attribute__ ((optimize(1))) measure(void (*func)(void)) {
-  uint32_t cycles_empty = __measure(emptyfunc);
+uint32_t __attribute__ ((optimize(1))) measure(void (*func)(void))
+{
+  uint32_t cycles_empty = __measure(empty_func);
   uint32_t cycles = __measure(func);
   return cycles - cycles_empty;
+}
+
+uint32_t __attribute__ ((optimize(1))) measure(void (*func)(void), void (*comp_func)(void))
+{
+  uint32_t cycles_comp = __measure(comp_func);
+  uint32_t cycles = __measure(func);
+  return cycles - cycles_comp;
 }

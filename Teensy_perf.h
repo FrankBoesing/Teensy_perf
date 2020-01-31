@@ -7,4 +7,5 @@
 #include "Arduino.h"
 
 uint32_t measure(void (*func)(void));
+uint32_t measure(void (*func)(void), void (*compensate)(void));
 #endif
